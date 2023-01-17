@@ -1,7 +1,7 @@
-#if defined _api_weapon_player_model_included
+#if defined _api_wpn_player_included
 	#endinput
 #endif
-#define _api_weapon_player_model_included
+#define _api_wpn_player_included
 
 /**
  * Sets the Weapon Player Model
