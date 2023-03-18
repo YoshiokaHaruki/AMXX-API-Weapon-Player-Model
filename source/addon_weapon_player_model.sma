@@ -1,11 +1,15 @@
 new const PluginName[ ] =				"[API] Addon: Weapon Player Model";
-new const PluginVersion[ ] =			"1.0.1";
 new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Includes ] ~ */
 #include <amxmodx>
 #include <fakemeta>
 #include <hamsandwich>
+#include <api_weapon_player_model>
+
+/**
+ * If ur server can't use Re modules, just comment out or delete this line
+ */
 #include <reapi>
 
 #if !defined _reapi_included
@@ -29,9 +33,22 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
  */
 #define HidePlayerModelWhenDie
 
+/**
+ * Allow third-person attachments to be moved
+ * NB! Uses an additional model
+ */
+#define CanMoveAttachments
+
 new const PluginPrefix[ ] =				"API:WPM";
 new const EntityReference[ ] =			"info_target";
 new const EntityClassName[ ] =			"ent_weapon_pmodel";
+
+#if defined CanMoveAttachments
+	new const WeaponPlayerModel[ ] =	"models/p_null.mdl";
+	new const Float: AttachmentMoveMinMax[ ] = {
+		-25.0, 25.0
+	};
+#endif
 
 /* ~ [ Params ] ~ */
 new gl_pWeaponPlayerModel[ MAX_PLAYERS + 1 ];
@@ -53,9 +70,17 @@ public plugin_natives( )
 	register_native( "api_wpn_player_model_remove",	"native_wpn_player_model_remove" );
 }
 
+#if defined CanMoveAttachments
+	public plugin_precache( )
+	{
+		/* -> Precache Models <- */
+		engfunc( EngFunc_PrecacheModel, WeaponPlayerModel );
+	}
+#endif
+
 public plugin_init( )
 {
-	register_plugin( PluginName, PluginVersion, PluginAuthor );
+	register_plugin( PluginName, WPM_VERSION_STRING, PluginAuthor );
 
 #if defined _reapi_included
 	/* -> ReGameDLL <- */
@@ -86,6 +111,20 @@ public plugin_init( )
 		RegisterHam( Ham_Killed, "player", "CBasePlayer_Killed_Post", true );
 	#endif
 #endif
+}
+
+public plugin_cfg( )
+{
+	/* -> Register Cvar's <- */
+#if AMXX_VERSION_NUM <= 182
+	register_cvar( "API_Weapon_Player_Model", WPM_VERSION_STRING, ( FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED ) );
+#else
+	create_cvar( "API_Weapon_Player_Model", WPM_VERSION_STRING, ( FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED ) );
+#endif
+
+	/* -> Check Version <- */
+	new fwReturn;
+	ExecuteForward( CreateMultiForward( "__wpm_version_check", ET_IGNORE, FP_CELL, FP_CELL ), fwReturn, WPM_VERSION_MAJOR, WPM_VERSION_MINOR );
 }
 
 public client_putinserver( pPlayer ) CBasePlayer__InitPlayerModel( pPlayer );
@@ -125,7 +164,7 @@ public bool: CBasePlayer__InitPlayerModel( const pPlayer )
 	return false;
 }
 
-bool: CBasePlayer__WeaponPlayerModel( const pPlayer, const szModel[ ] = "", const iBody = 0, const iSkin = 0, const iSequence = 0 )
+bool: CBasePlayer__WeaponPlayerModel( const pPlayer, const szModel[ ] = "", const iBody = 0, const iSkin = 0, const iSequence = 0, const Float: flAttachment[ ] = { 0.0, 0.0 } )
 {
 	if ( is_nullent( gl_pWeaponPlayerModel[ pPlayer ] ) )
 	{
@@ -134,7 +173,7 @@ bool: CBasePlayer__WeaponPlayerModel( const pPlayer, const szModel[ ] = "", cons
 	}
 
 	new bitsEffects = get_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_effects );
-	if ( IsNullString( szModel ) )
+	if ( Float: get_entvar( pPlayer, var_renderamt ) <= 0.0 || IsNullString( szModel ) )
 		bitsEffects |= EF_NODRAW;
 	else
 	{
@@ -147,6 +186,13 @@ bool: CBasePlayer__WeaponPlayerModel( const pPlayer, const szModel[ ] = "", cons
 		set_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_frame, 0.0 );
 		set_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_framerate, 1.0 );
 		set_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_animtime, get_gametime( ) );
+
+	#if defined CanMoveAttachments
+		set_entvar( pPlayer, var_weaponmodel, WeaponPlayerModel );
+
+		UTIL_MoveController( pPlayer, 0, flAttachment[ 0 ], AttachmentMoveMinMax );
+		UTIL_MoveController( pPlayer, 1, flAttachment[ 1 ], AttachmentMoveMinMax );
+	#endif
 	}
 
 	set_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_effects, bitsEffects );
@@ -162,8 +208,8 @@ public bool: CBasePlayer__RemovePlayerModel( const pPlayer )
 	if ( !is_nullent( pEntity ) )
 	{
 		set_entvar( pEntity, var_flags, FL_KILLME );
-		set_entvar( pEntity, var_nextthink, -1.0 );
-
+		set_entvar( pEntity, var_nextthink, get_gametime( ) );
+		
 		return true;
 	}
 
@@ -173,7 +219,7 @@ public bool: CBasePlayer__RemovePlayerModel( const pPlayer )
 /* ~ [ Natives ] ~ */
 public bool: native_wpn_player_model_set( const iPlugin, const iParams )
 {
-	enum { arg_player = 1, arg_model, arg_body, arg_skin, arg_sequence };
+	enum { arg_player = 1, arg_model, arg_body, arg_skin, arg_sequence, arg_attachment };
 
 	new pPlayer = get_param( arg_player );
 	if ( !is_user_alive( pPlayer ) )
@@ -185,7 +231,10 @@ public bool: native_wpn_player_model_set( const iPlugin, const iParams )
 	new szModel[ MAX_RESOURCE_PATH_LENGTH ];
 	get_string( arg_model, szModel, charsmax( szModel ) );
 
-	return CBasePlayer__WeaponPlayerModel( pPlayer, szModel, get_param( arg_body ), get_param( arg_skin ), get_param( arg_sequence ) );
+	new Float: flAttachment[ 2 ];
+	get_array_f( arg_attachment, flAttachment, 2 );
+
+	return CBasePlayer__WeaponPlayerModel( pPlayer, szModel, get_param( arg_body ), get_param( arg_skin ), get_param( arg_sequence ), flAttachment );
 }
 
 public native_wpn_player_model_get( const iPlugin, const iParams )
@@ -246,4 +295,25 @@ public bool: native_wpn_player_model_remove( const iPlugin, const iParams )
 	}
 
 	return CBasePlayer__RemovePlayerModel( pPlayer );
+}
+
+/* ~ [ Stocks ] ~ */
+/* -> Move controller by values from model <- */
+stock bool: UTIL_MoveController( const pEntity, const iController, Float: flValue = 0.0, const Float: flMinMaxValue[ 2 ] = { 0.0, 255.0 } )
+{
+	if ( is_nullent( pEntity ) )
+		return false;
+
+	flValue = floatclamp( flValue, flMinMaxValue[ 0 ], flMinMaxValue[ 1 ] );
+
+	new Float: flLength = floatabs( flMinMaxValue[ 0 ] ) + flMinMaxValue[ 1 ];
+	flValue = ( ( flLength / 2.0 + flValue ) / flLength ) * 255.0;
+
+#if defined _reapi_included
+	set_entvar( pEntity, var_controller, floatround( flValue ), iController );
+#else
+	set_pev( pEntity, pev_controller_0 + iController, floatround( flValue ) );
+#endif
+
+	return true;
 }
