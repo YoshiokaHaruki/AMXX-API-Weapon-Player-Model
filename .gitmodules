@@ -1,0 +1,3 @@
+[submodule "source/include/non_reapi_support.inc"]
+	path = source/include/non_reapi_support.inc
+	url = https://gist.github.com/YoshiokaHaruki/bcc9c6dbc6e23c69ea53d04c72a03cbd
