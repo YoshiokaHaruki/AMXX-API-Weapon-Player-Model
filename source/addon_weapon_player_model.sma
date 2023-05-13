@@ -18,7 +18,7 @@ new const PluginAuthor[ ] =				"Yoshioka Haruki";
 
 /* ~ [ Plugin Settings ] ~ */
 /**
- * Hide th Wepaon Player Model each Deploy.
+ * Hide th Weapon Player Model each Deploy.
  * 
  * You will not have such that for some reason there is a model that you no longer have,
  * However, the call to the "CBasePlayer__WeaponPlayerModel" function will be called 1 time more.
@@ -128,7 +128,12 @@ public plugin_cfg( )
 }
 
 public client_putinserver( pPlayer ) CBasePlayer__InitPlayerModel( pPlayer );
-public client_disconnected( pPlayer ) CBasePlayer__RemovePlayerModel( pPlayer );
+
+#if AMXX_VERSION_NUM <= 182
+	public client_disconnect( pPlayer ) CBasePlayer__RemovePlayerModel( pPlayer );
+#else
+	public client_disconnected( pPlayer ) CBasePlayer__RemovePlayerModel( pPlayer );
+#endif
 
 /* ~ [ ReGameDLL / HamSandwich ] ~ */
 #if defined HidePlayerModelEachDeploy
