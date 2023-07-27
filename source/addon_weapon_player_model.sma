@@ -227,11 +227,14 @@ public bool: native_wpn_player_model_set( const iPlugin, const iParams )
 	enum { arg_player = 1, arg_model, arg_body, arg_skin, arg_sequence, arg_attachment };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_alive( pPlayer ) )
+	if ( !is_user_connected( pPlayer ) )
 	{
 		log_error( AMX_ERR_NATIVE, "[%s | SET] Invalid Player (Id: %i)", PluginPrefix, pPlayer );
 		return false;
 	}
+
+	if ( !is_user_alive( pPlayer ) )
+		return false;
 
 	new szModel[ MAX_RESOURCE_PATH_LENGTH ];
 	get_string( arg_model, szModel, charsmax( szModel ) );
@@ -247,7 +250,7 @@ public native_wpn_player_model_get( const iPlugin, const iParams )
 	enum { arg_player = 1 };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_alive( pPlayer ) )
+	if ( !is_user_connected( pPlayer ) )
 	{
 		log_error( AMX_ERR_NATIVE, "[%s | GET] Invalid Player (Id: %i)", PluginPrefix, pPlayer );
 		return -1;
@@ -261,7 +264,7 @@ public bool: native_wpn_player_model_hide( const iPlugin, const iParams )
 	enum { arg_player = 1 };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_alive( pPlayer ) )
+	if ( !is_user_connected( pPlayer ) )
 	{
 		log_error( AMX_ERR_NATIVE, "[%s | HIDE] Invalid Player (Id: %i)", PluginPrefix, pPlayer );
 		return false;
@@ -275,11 +278,14 @@ public bool: native_wpn_player_model_show( const iPlugin, const iParams )
 	enum { arg_player = 1 };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_alive( pPlayer ) )
+	if ( !is_user_connected( pPlayer ) )
 	{
 		log_error( AMX_ERR_NATIVE, "[%s | SHOW] Invalid Player (Id: %i)", PluginPrefix, pPlayer );
 		return false;
 	}
+
+	if ( !is_user_alive( pPlayer ) )
+		return false;
 
 	if ( is_nullent( gl_pWeaponPlayerModel[ pPlayer ] ) )
 		return false;
@@ -293,7 +299,7 @@ public bool: native_wpn_player_model_remove( const iPlugin, const iParams )
 	enum { arg_player = 1 };
 
 	new pPlayer = get_param( arg_player );
-	if ( !is_user_alive( pPlayer ) )
+	if ( !is_user_connected( pPlayer ) )
 	{
 		log_error( AMX_ERR_NATIVE, "[%s | REMOVE] Invalid Player (Id: %i)", PluginPrefix, pPlayer );
 		return false;

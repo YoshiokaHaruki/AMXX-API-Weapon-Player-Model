@@ -57,10 +57,10 @@ native bool: api_wpn_player_model_remove( const pPlayer );
  * API Weapon Player Model Version
  */
 
-#define WPM_VERSION_MAJOR           1
-#define WPM_VERSION_MINOR           1
-#define WPM_VERSION_PATCH           1
-#define WPM_VERSION_STRING          "1.1.1"
+#define WPM_VERSION_MAJOR       1
+#define WPM_VERSION_MINOR       1
+#define WPM_VERSION_PATCH       1
+#define WPM_VERSION_STRING      "1.1.1"
 
 public __wpm_version_check( const iMajorVersion, const iMinorVersion )
 {
