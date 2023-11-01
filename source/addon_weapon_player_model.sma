@@ -178,7 +178,7 @@ bool: CBasePlayer__WeaponPlayerModel( const pPlayer, const szModel[ ] = "", cons
 	}
 
 	new bitsEffects = get_entvar( gl_pWeaponPlayerModel[ pPlayer ], var_effects );
-	if ( Float: get_entvar( pPlayer, var_renderamt ) <= 0.0 || IsNullString( szModel ) )
+	if ( Float: get_entvar( pPlayer, var_renderamt ) <= 0.0 && get_entvar( pPlayer, var_rendermode ) != kRenderNormal || IsNullString( szModel ) )
 		bitsEffects |= EF_NODRAW;
 	else
 	{
